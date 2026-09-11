@@ -97,7 +97,11 @@ For every `call` and `linkedin` touch due today (from `node src/cli.js brief --j
 
 ### 5. Post the digest to Slack
 
-One direct message to Caitlin, in this shape. Keep it scannable; she reads it on a phone.
+Resolve the destination first: `slack_search_users` for `cbercha@qumulo.com` to get Caitlin's user,
+then send her a direct message. Do not post the digest into a shared channel — this is her work queue,
+not a team update.
+
+One direct message, in this shape. Keep it scannable; she reads it on a phone.
 
 ```
 Outbound — <Day, DD Mon>
