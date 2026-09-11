@@ -1,0 +1,4 @@
+# Transient artifact-database dumps. The console is the source of truth;
+# these files are re-fetched by the daily job on every run.
+*
+!.gitignore

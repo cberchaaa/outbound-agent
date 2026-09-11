@@ -1,0 +1,296 @@
+/**
+ * Builds data/sequence-template.json.
+ *
+ * Authored as a script rather than hand-written JSON so the copy can use real
+ * multi-line template literals and the output is always valid JSON.
+ *
+ * ARCHITECTURE — three layers compose into one rendered touch:
+ *   sequence template (stable structure + copy skeleton)
+ *     x play pack   (per batch: the Reframe, COI, Teaching Insight, proof, assets)
+ *     x prospect    (per person: name, title, company, vertical, trigger)
+ *   = the exact words for this touch, for this person, on this date.
+ *
+ * Edit copy in the interface, not here — the interface is the source of truth
+ * once published. This file seeds the first version.
+ */
+import { writeFileSync, mkdirSync } from 'node:fs';
+
+const EMAIL = 'email';
+const LINKEDIN = 'linkedin';
+const CALL = 'call';
+
+const steps = [
+  {
+    id: 'T1', dayOffset: 0, channel: LINKEDIN, action: 'connection-request',
+    name: 'Connect — no pitch',
+    intent: 'Warmer. Buy the right to challenge later. Zero ask.',
+    charLimit: 300,
+    body: `{{first_name}} — I work with {{vertical}} teams on {{reframe_short}}. Not pitching you anything here; what {{company}} is doing is directly relevant to a pattern I'm tracking. Happy to trade notes.`,
+  },
+  {
+    id: 'T2', dayOffset: 2, channel: EMAIL, action: 'send',
+    name: 'Email 1 — Warmer + Reframe',
+    intent: 'Teach. Name the trigger, then reframe their stated problem into the real one.',
+    subject: `{{company}} — a question about {{vertical}} data`,
+    body: `{{first_name}} —
+
+{{trigger}}
+
+Most {{vertical}} teams frame this as a capacity problem. Across our {{vertical}} customers, capacity is the symptom. The real constraint: {{reframe}}.
+
+Worth 15 minutes to pressure-test whether that's true at {{company}}?
+
+{{sender_name}}
+{{sender_title}} | Qumulo
+{{sender_phone}}`,
+  },
+  {
+    id: 'T3', dayOffset: 4, channel: CALL, action: 'dial',
+    name: 'Call 1 — Reframe dial',
+    intent: 'Teach + Take Control. Land the Reframe live, earn one discovery answer.',
+    talkTrack: {
+      opener: `{{first_name}}, this is {{sender_name}} at Qumulo — I sent you a note Tuesday, figured I'd earn 30 seconds to say it out loud. Fair?`,
+      reframe: `Most {{vertical}} teams I talk to are budgeting for capacity. What we see across our {{vertical}} customers is that capacity is the symptom — the actual constraint is this: {{reframe}}.`,
+      discovery: [
+        `Walk me through how {{workflow}} works today end to end — where does it hurt first?`,
+        `When that happens, who downstream feels it, and what does it cost them?`,
+        `What had you prioritize this now versus six months ago?`,
+      ],
+      objections: [
+        { when: `"We're happy with our current platform."`, say: `Good — most teams are, right up until {{objection_trigger}}. When's the last time you stress-tested that scenario?` },
+        { when: `"Send me something."`, say: `Happy to. So it answers the right question: who else would need to be in the room, and what would have to be true for you to act on it?` },
+      ],
+      voicemail: `{{first_name}}, {{sender_name}} at Qumulo, {{sender_phone}}. Calling about {{reframe_short}} at {{company}} — not a capacity pitch. I'll follow up by email. {{sender_phone}}.`,
+      nextStep: `15 minutes on the calendar this week or next. Fallback: permission to send the {{asset_title}} and follow up in a week.`,
+    },
+  },
+  {
+    id: 'T4', dayOffset: 6, channel: LINKEDIN, action: 'engage',
+    name: 'Engage their content',
+    intent: 'Tailor. Be visible and specific before you DM.',
+    body: `Find {{first_name}}'s most recent post, or a {{company}} announcement from the last 30 days.
+
+Leave ONE comment that adds a specific observation only someone who knows {{vertical}} would make. No "great post." No product mention. No link.
+
+If they have posted nothing in 90 days, react to a {{company}} page post instead and log this touch as done.`,
+  },
+  {
+    id: 'T5', dayOffset: 8, channel: EMAIL, action: 'send',
+    name: 'Email 2 — Teaching Insight',
+    intent: 'Commercial Teaching. Counter-intuitive, defensible, does not pitch.',
+    subject: `what we're seeing across {{vertical}}`,
+    body: `{{first_name}} —
+
+Conventional wisdom in {{vertical}} right now: {{ti_wisdom}}
+
+What the pattern actually shows: {{ti_contradiction}}
+
+What that means for a team in your seat: {{ti_implication}}
+
+I'm not asking you to buy anything. I'm asking whether that pattern is showing up at {{company}} — because if it is, you're making architecture decisions on a premise that's already stale.
+
+15 minutes?
+
+{{sender_name}}`,
+  },
+  {
+    id: 'T6', dayOffset: 10, channel: CALL, action: 'dial',
+    name: 'Call 2 — Teaching Insight dial',
+    intent: 'Teach. Lead with the insight, not the follow-up-on-my-email apology.',
+    talkTrack: {
+      opener: `{{first_name}} — {{sender_name}} at Qumulo. I'm not calling to check if you got my email. I'm calling because of one thing in it. 30 seconds?`,
+      reframe: `{{ti_contradiction}} That's the part most {{vertical}} teams haven't priced in yet.`,
+      discovery: [
+        `Is that showing up at {{company}} yet, or are you still ahead of it?`,
+        `Who owns that decision — you, or does it sit with {{pivot_persona}}?`,
+        `What's your data growth rate right now, and where does it break first: capacity, performance, or the team's time?`,
+      ],
+      objections: [
+        { when: `"We're going to do this in cloud."`, say: `Right instinct for a lot of workloads. The question we'd ask: what does egress and re-hydration look like at full scale? That's where the math usually turns.` },
+        { when: `"No budget this year."`, say: `Understood — and the reason I'm pushing is the cost of waiting another quarter at your scale is roughly {{coi_current}}. Let's talk about what could move budget, not whether.` },
+      ],
+      voicemail: `{{first_name}}, {{sender_name}} at Qumulo. One line: {{ti_contradiction_short}} I think that's live at {{company}}. {{sender_phone}}.`,
+      nextStep: `15 minutes. Fallback: get one name in the buying committee.`,
+    },
+  },
+  {
+    id: 'T7', dayOffset: 12, channel: LINKEDIN, action: 'message',
+    name: 'LinkedIn DM — the insight in three lines',
+    intent: 'Teach in the channel they actually read. Short enough to read on a phone.',
+    charLimit: 700,
+    body: `{{first_name}} — three lines, no deck.
+
+Most {{vertical}} teams believe {{ti_wisdom_short}}. What we see is {{ti_contradiction_short}}.
+
+If that's live at {{company}}, it's worth 15 minutes. If it isn't, tell me and I'll stop.`,
+  },
+  {
+    id: 'T8', dayOffset: 14, channel: EMAIL, action: 'send',
+    name: 'Email 3 — Cost of Inaction',
+    intent: 'COI. Put a defensible number on the status quo. Defeats "no decision".',
+    subject: `the {{vertical}} number that never shows up on an invoice`,
+    body: `{{first_name}} —
+
+Putting a number on what I raised earlier.
+
+Today: {{coi_current}}
+Over the next 12 months: {{coi_compounding}}
+Tail risk: {{coi_risk}}
+
+None of that appears on a storage invoice, which is exactly why it survives budget cycles.
+
+If those numbers are wrong for {{company}}, I'd genuinely like to know where — that's a useful 15 minutes either way.
+
+{{sender_name}}`,
+  },
+  {
+    id: 'T9', dayOffset: 16, channel: CALL, action: 'dial',
+    name: 'Call 3 — COI dial',
+    intent: 'Constructive Tension. Make the status quo expensive out loud.',
+    talkTrack: {
+      opener: `{{first_name}} — {{sender_name}}, Qumulo. I sent you a number this week and I want to know if it's wrong. Worth 60 seconds?`,
+      reframe: `Our read is {{company}} is already paying {{coi_current}}. Over 12 months that compounds to {{coi_compounding}}, because {{coi_mechanism}}.`,
+      discovery: [
+        `Where's that number wrong for you — too high, too low, or measuring the wrong thing?`,
+        `If this doesn't get solved, what breaks first, and who notices?`,
+        `Who'd have to see that number for it to become a funded project?`,
+      ],
+      objections: [
+        { when: `"Your price is too high."`, say: `Compared to what? The number we look at is the cost of staying where you are — that's the {{coi_current}} we just walked through.` },
+        { when: `"That number doesn't apply to us."`, say: `Then help me correct it. What's the real figure? I'd rather be accurate than persuasive.` },
+      ],
+      voicemail: `{{first_name}}, {{sender_name}} at Qumulo. I put a number on the status quo at {{company}} — {{coi_current}}. I'd like to be told I'm wrong. {{sender_phone}}.`,
+      nextStep: `A working session to correct the number with their data. That IS the meeting.`,
+    },
+  },
+  {
+    id: 'T10', dayOffset: 18, channel: EMAIL, action: 'send',
+    name: 'Email 4 — Proof',
+    intent: 'Resolution Path. Pattern recognition and evidence, judged without you in the room.',
+    subject: `{{proof_headline}}`,
+    body: `{{first_name}} —
+
+{{proof_point}}
+
+Here's the detail: {{asset_title}} — {{asset_link}}
+
+It isn't a pitch deck. It's the architecture and the numbers, so you can judge it without me in the room.
+
+I still think the {{company}} version of this is worth 15 minutes.
+
+{{sender_name}}`,
+  },
+  {
+    id: 'T11', dayOffset: 20, channel: LINKEDIN, action: 'message',
+    name: 'LinkedIn — share the asset',
+    intent: 'Tailor. One line of why-this-matters-to-you, then get out of the way.',
+    charLimit: 700,
+    body: `{{first_name}} — this is the piece I mentioned: {{asset_link}}
+
+The part relevant to {{company}}: {{asset_relevance}}
+
+No reply needed. If it's useful I'll send the {{vertical}} benchmark next.`,
+  },
+  {
+    id: 'T12', dayOffset: 22, channel: EMAIL, action: 'send',
+    name: 'Email 5 — Message Pivot / multi-thread',
+    intent: 'Same value, different seat. Widen the buying committee or earn a referral.',
+    subject: `{{pivot_persona}} version of this`,
+    body: `{{first_name}} —
+
+Different angle. Everything I've sent framed this as an infrastructure problem: {{reframe_short}}.
+
+For {{pivot_persona}}, the same issue reads as {{pivot_metric}} — and that's usually the version with budget attached.
+
+If that's the right door at {{company}}, point me at it and I'll take it there directly. Or forward this; I won't say you sent me.
+
+{{sender_name}}`,
+  },
+  {
+    id: 'T13', dayOffset: 24, channel: CALL, action: 'dial',
+    name: 'Call 4 — Take Control dial',
+    intent: 'Take Control. Direct ask, no hedging. This is the one most reps skip.',
+    talkTrack: {
+      opener: `{{first_name}} — {{sender_name}} at Qumulo. Last call from me on this, and I want to use it well. Two minutes?`,
+      reframe: `Short version: {{reframe_short}}, it's costing roughly {{coi_current}}, and {{proof_short}}.`,
+      discovery: [
+        `Is this a "not now" or a "not us"? Those need different answers from me.`,
+        `If it's not now — what has to happen before it is?`,
+        `If it's not you — who is it?`,
+      ],
+      objections: [
+        { when: `"Just send me a deck."`, say: `Happy to, and I want it to answer the right question. Who else needs to be in the conversation, and what would have to be true for you to act?` },
+        { when: `Silence / stalling.`, say: `I'd rather have a clean no than a slow maybe — it's more useful to both of us. Which is it?` },
+      ],
+      voicemail: `{{first_name}}, {{sender_name}}, Qumulo, {{sender_phone}}. Last one from me — I'd rather get a clean no than keep guessing. One line back either way and I'll respect it. {{sender_phone}}.`,
+      nextStep: `A yes, a no, or a named referral. All three are acceptable outcomes.`,
+    },
+  },
+  {
+    id: 'T14', dayOffset: 26, channel: LINKEDIN, action: 'message',
+    name: 'LinkedIn — close the loop',
+    intent: 'Low-pressure permission to stop. Often outperforms the email breakup.',
+    charLimit: 700,
+    body: `{{first_name}} — closing the loop on my end. No hard feelings if the timing's wrong.
+
+If {{reframe_short}} becomes live at {{company}} in the next couple of quarters, I'm easy to find. I'll keep sending the {{vertical}} benchmarks that are actually useful and nothing else.`,
+  },
+  {
+    id: 'T15', dayOffset: 28, channel: EMAIL, action: 'send',
+    name: 'Email 6 — Breakup, three doors',
+    intent: 'Permission to close. Every option is a usable answer; silence stops being one.',
+    subject: `closing the file on {{company}}`,
+    body: `{{first_name}} —
+
+I've sent a few notes on {{reframe_short}}. No response is a data point, and I'd rather read it correctly than keep filling your inbox.
+
+Three doors, any of them useful to me:
+
+1. It matters, timing's wrong — tell me when to come back.
+2. It matters, it isn't your call — point me at who owns it.
+3. I've misread {{company}} — say so and I'll close the file.
+
+For what it's worth, the reason I pushed: {{coi_current}}, compounding to {{coi_compounding}}. If that's genuinely not true at {{company}}, door 3 is the right answer and I'll take it.
+
+{{sender_name}}
+{{sender_title}} | Qumulo`,
+  },
+];
+
+const template = {
+  version: 1,
+  name: 'Territory Outbound — 15 touches / 30 days',
+  description:
+    'Multi-modality outbound cadence. One touch every other calendar day across 30 days, ' +
+    'weekend touches shifted to the next business day. Built on Challenger (Teach/Tailor/' +
+    'Take Control) with a Command of the Message spine: Warmer, Reframe, Emotional Impact, ' +
+    'Resolution Path.',
+  cadence: { touches: 15, intervalDays: 2, spanDays: 28, skipWeekends: true },
+  mix: {
+    email: steps.filter((s) => s.channel === EMAIL).length,
+    linkedin: steps.filter((s) => s.channel === LINKEDIN).length,
+    call: steps.filter((s) => s.channel === CALL).length,
+  },
+  mergeFields: {
+    prospect: ['first_name', 'last_name', 'title', 'company', 'vertical', 'trigger', 'workflow'],
+    play: [
+      'reframe', 'reframe_short', 'coi_current', 'coi_compounding', 'coi_risk', 'coi_mechanism',
+      'ti_wisdom', 'ti_wisdom_short', 'ti_contradiction', 'ti_contradiction_short', 'ti_implication',
+      'proof_point', 'proof_headline', 'proof_short', 'asset_title', 'asset_link', 'asset_relevance',
+      'pivot_persona', 'pivot_metric', 'objection_trigger',
+    ],
+    sender: ['sender_name', 'sender_title', 'sender_phone', 'sender_calendar_link'],
+  },
+  qsCoordinates: ['1.2 Status Quo Audit', '1.3 Competitive Differentiation', '2.1 Commercial Teaching', '2.2 Tailoring for Resonance', '2.3 Control', '4 Objection Handling'],
+  challengerBehaviors: ['Teach', 'Tailor', 'Take Control'],
+  steps,
+};
+
+mkdirSync(new URL('../data/', import.meta.url), { recursive: true });
+writeFileSync(
+  new URL('../data/sequence-template.json', import.meta.url),
+  JSON.stringify(template, null, 2) + '\n',
+);
+console.log(
+  `Wrote 15 steps — ${template.mix.email} email / ${template.mix.linkedin} LinkedIn / ${template.mix.call} call`,
+);

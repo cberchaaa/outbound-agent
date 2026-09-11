@@ -1,1 +1,101 @@
-# outbound-agent
+# Outbound Agent
+
+Territory outbound outreach: a 15-touch, multi-modality cadence with an interactive console,
+rolling Gmail drafts, and a daily queue in Slack and on the calendar.
+
+**Console:** https://claude.ai/code/artifact/bb71ad46-4511-4122-bb3d-58cfc69e9d7f
+
+## What it does
+
+- **A 15-touch cadence over 30 days** — one touch every other calendar day, Day 1 to Day 29.
+  6 email, 5 LinkedIn, 4 phone. Weekend touches shift to the next business day and never collide.
+- **Gmail drafts, never sends** — email touches become drafts on a rolling 3-day window, labelled
+  `Outbound Agent`, personalised per prospect. Nothing is ever sent by the system.
+- **Calls and LinkedIn get queued with a talk track** — each call arrives with an opener, the
+  reframe, three discovery questions, two objection handles, a voicemail script, and the next step
+  you are going for.
+- **A daily digest at 08:00 Pacific** — Slack DM plus calendar blocks, weekdays only, silent when
+  there is nothing to do.
+- **Replies stop the sequence** — inbound mail from a sequenced prospect ends their cadence and
+  trashes their unsent drafts. Auto-responders and bounces are filtered out.
+
+## How the pieces fit
+
+```
+  console (artifact + database)          <- you edit here; source of truth
+        |
+        |  read_db  ->  data/sync/  ->  tools/assemble.mjs
+        v
+  data/prospects.json, data/play-packs.json, data/sequence-template.json, config/settings.json
+        |
+        v
+  src/core.js  ->  src/cli.js  ->  daily job (docs/OPERATIONS.md)
+                                     |
+                                     +-> Gmail drafts
+                                     +-> Google Calendar blocks
+                                     +-> Slack digest
+```
+
+`src/core.js` is the only implementation of the cadence maths and merge-field rendering. It runs
+unchanged in Node and in the browser — the dates shown in the console are computed by the same code
+that decides which drafts get created.
+
+## Three layers make one touch
+
+The sequence structure stays fixed. What changes is what fills it:
+
+| Layer | Holds | Scope |
+| --- | --- | --- |
+| **Sequence** | The 15 touches: structure, intent, copy skeleton | Everyone |
+| **Play pack** | Reframe, Cost of Inaction, Teaching Insight, proof, assets, pivot | One batch |
+| **Prospect** | Name, title, company, vertical, trigger, workflow, start date | One person |
+
+A play pack is drafted from the account plan (context, history, contacts) and the **PMM Enablement
+Assets** folder on Drive (product and market truth), using the Challenger and Command of the Message
+structure: Warmer, Reframe, Emotional Impact, Resolution Path.
+
+Nothing renders until every field it needs is filled. A touch with an unresolved `{{field}}` is
+marked *not ready* and no draft is created — a literal `{{first_name}}` can never reach a prospect.
+
+## Commands
+
+```
+npm test                         # 27 tests over the date engine, rendering and queue
+npm run brief                    # what to do today
+node src/cli.js brief --json     # same, for the digest builder
+node src/cli.js drafts           # email touches needing a Gmail draft
+node src/cli.js schedule <id>    # one prospect's 15 dates, with any shifts explained
+node src/cli.js validate         # every active prospect renders cleanly across all 15 touches
+node tools/build-sequence.mjs    # rebuild data/sequence-template.json from source
+node tools/assemble.mjs          # rebuild local data from a console dump
+```
+
+Every command takes `--date=YYYY-MM-DD` to evaluate a different day.
+
+## The cadence
+
+| Touch | Day | Channel | Purpose |
+| --- | --- | --- | --- |
+| T1 | 1 | LinkedIn | Connect, no pitch — buy the right to challenge |
+| T2 | 3 | Email | Warmer + Reframe |
+| T3 | 5 | Call | Reframe dial |
+| T4 | 7 | LinkedIn | Engage their content |
+| T5 | 9 | Email | Teaching Insight |
+| T6 | 11 | Call | Teaching Insight dial |
+| T7 | 13 | LinkedIn | The insight in three lines |
+| T8 | 15 | Email | Cost of Inaction |
+| T9 | 17 | Call | COI dial |
+| T10 | 19 | Email | Proof |
+| T11 | 21 | LinkedIn | Share the asset |
+| T12 | 23 | Email | Message Pivot / multi-thread |
+| T13 | 25 | Call | Take Control |
+| T14 | 27 | LinkedIn | Close the loop |
+| T15 | 29 | Email | Breakup, three doors |
+
+Edit any of it inline in the console. The structure is a starting point, not a constraint.
+
+## Operating it
+
+`docs/OPERATIONS.md` is the runbook the scheduled daily session follows. It is deliberately explicit
+about what the job may not do: never send, never contact a prospect, never draft from incomplete
+content, never invent a fact, never mark a touch done.
