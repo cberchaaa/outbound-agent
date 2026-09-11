@@ -10,24 +10,11 @@
  *
  * Every command accepts --date=YYYY-MM-DD to evaluate "today" as another day.
  */
-const fs = require('node:fs');
-const path = require('node:path');
 const { buildQueue, draftWindow, scheduleProspect } = require('./planner.js');
 const { renderStep, buildVars } = require('./render.js');
-
-const ROOT = path.join(__dirname, '..');
-const read = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+const { load } = require('./load.js');
 
 const CHANNEL_ICON = { email: '[EMAIL]', linkedin: '[LINKEDIN]', call: '[CALL]' };
-
-function load() {
-  const settings = read('config/settings.json');
-  const sequence = read('data/sequence-template.json');
-  const prospects = read('data/prospects.json').prospects || [];
-  const packs = read('data/play-packs.json').packs || [];
-  const packById = Object.fromEntries(packs.map((p) => [p.id, p]));
-  return { settings, sequence, prospects, packs, packById };
-}
 
 /** Resolve the full variable bag for one prospect, or explain why it can't be. */
 function varsFor(prospect, packById, settings) {
@@ -154,7 +141,8 @@ function cmdSchedule(argv) {
 }
 
 function cmdValidate() {
-  const { settings, sequence, prospects, packById } = load();
+  const { settings, sequence, prospects, packById, sources } = load();
+  console.log(`settings: ${sources.settings.tier}  sequence: ${sources.sequence.tier}`);
   let problems = 0;
   for (const p of prospects.filter((x) => x.status === 'active')) {
     const { pack, vars } = varsFor(p, packById, settings);

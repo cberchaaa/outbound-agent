@@ -40,6 +40,11 @@ node tools/assemble.mjs
 node src/cli.js validate
 ```
 
+`assemble.mjs` writes the console's sequence and settings to `data/sequence-live.json` and
+`config/settings-live.json`, which are gitignored and take precedence over the committed seed files.
+`validate` prints which tier it read — if it says `seed` for both after a successful dump, the dump
+did not land and you are about to work from defaults. Stop and report that.
+
 `validate` lists every active prospect whose 15 touches do not render cleanly. Those prospects are
 reportable problems, not blockers for the rest — carry on with everyone who does render.
 

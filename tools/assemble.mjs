@@ -47,15 +47,17 @@ const configs = readDir('config');
 write('data/prospects.json', { syncedAt: stamp, source: 'artifact-db', prospects });
 write('data/play-packs.json', { syncedAt: stamp, source: 'artifact-db', packs });
 
-// Sequence and settings only overwrite when the console actually has them,
-// so a failed or partial dump can never blank the cadence definition.
+// Sequence and settings are written to LIVE files, never over the committed
+// seed. src/load.js prefers the live file when it exists, so the daily job can
+// never dirty a tracked file and CI can still prove the seed matches its
+// builder. A partial or failed dump writes nothing and the seed stays in force.
 const sequence = sequences.find((s) => Array.isArray(s.steps) && s.steps.length);
-if (sequence) write('data/sequence-template.json', sequence);
-else console.log('no sequence in dump — keeping the committed data/sequence-template.json');
+if (sequence) write('data/sequence-live.json', sequence);
+else console.log('no sequence in dump — falling back to data/sequence-template.json');
 
 const settings = configs.find((c) => c && c.timeZone);
-if (settings) write('config/settings.json', settings);
-else console.log('no settings in dump — keeping the committed config/settings.json');
+if (settings) write('config/settings-live.json', settings);
+else console.log('no settings in dump — falling back to config/settings.json');
 
 console.log(`\n${prospects.length} prospect(s), ${packs.length} play pack(s) assembled.`);
 const active = prospects.filter((p) => p.status === 'active').length;
