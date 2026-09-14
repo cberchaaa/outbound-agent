@@ -3,7 +3,9 @@
 Territory outbound outreach: a 15-touch, multi-modality cadence with an interactive console,
 rolling Gmail drafts, and a daily queue in Slack and on the calendar.
 
-**Console:** https://claude.ai/code/artifact/bb71ad46-4511-4122-bb3d-58cfc69e9d7f
+**Setting it up for yourself:** [`docs/HANDOFF.md`](docs/HANDOFF.md). Each operator publishes their
+own console and creates their own scheduled job, so drafts, calendar blocks and the digest all land
+in their own accounts.
 
 ## What it does
 

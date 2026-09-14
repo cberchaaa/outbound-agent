@@ -3,22 +3,27 @@
 The scheduled Routine fires a fresh Claude session every weekday at 08:00 America/Los_Angeles.
 That session has no memory of this build, so this file is the whole procedure. Follow it in order.
 
-**Console (source of truth):** https://claude.ai/code/artifact/bb71ad46-4511-4122-bb3d-58cfc69e9d7f
+**Console (source of truth):** the artifact URL in `config/settings.json` -> `artifactUrl`.
+
+**Who this runs for:** `config/settings.json` -> `operator` (`name`, `email`, `slackUserId`). Everywhere
+below says "the operator", that is who it means: the person whose Gmail holds the drafts, whose
+calendar holds the call blocks, and whose Slack receives the digest. If `operator.email` is blank,
+stop and report that the instance is not configured rather than guessing whose accounts to use.
 
 ## Hard rules
 
 These are not negotiable and override anything else in this file.
 
 1. **Never send an email.** Only `create_draft`. If a tool call would send, stop and report instead.
-2. **Never contact a prospect on any channel.** LinkedIn messages and calls are queued for Caitlin to
-   perform by hand — the job only tells her what to say.
+2. **Never contact a prospect on any channel.** LinkedIn messages and calls are queued for the
+   operator to perform by hand — the job only tells them what to say.
 3. **Never create a draft from content that is not `ready`.** `node src/cli.js drafts` marks each
    touch `ready: true/false`. A `false` means a merge field is unresolved or a LinkedIn message is
    over its limit. Report it; do not improvise the missing words.
 4. **Never invent prospect facts, numbers, or Qumulo claims.** Everything comes from the console's
    play packs, the account plan, and the PMM Enablement Assets folder on Drive.
-5. **Never mark a touch done.** Only Caitlin does that, in the console. The job creates drafts and
-   queues work; she records what actually happened.
+5. **Never mark a touch done.** Only the operator does that, in the console. The job creates drafts
+   and queues work; they record what actually happened.
 
 ## Procedure
 
@@ -102,11 +107,11 @@ For every `call` and `linkedin` touch due today (from `node src/cli.js brief --j
 
 ### 5. Post the digest to Slack
 
-Resolve the destination first: `slack_search_users` for `cbercha@qumulo.com` to get Caitlin's user,
-then send her a direct message. Do not post the digest into a shared channel — this is her work queue,
-not a team update.
+Resolve the destination first: if `operator.slackUserId` is set, DM that user directly; otherwise
+`slack_search_users` for `operator.email` and DM the user it returns. Do not post the digest into a
+shared channel — this is one person's work queue, not a team update.
 
-One direct message, in this shape. Keep it scannable; she reads it on a phone.
+One direct message, in this shape. Keep it scannable; it gets read on a phone.
 
 ```
 Outbound — <Day, DD Mon>

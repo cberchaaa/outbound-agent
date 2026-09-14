@@ -1,4 +1,10 @@
 {
+  "operator": {
+    "name": "",
+    "email": "",
+    "slackUserId": ""
+  },
+  "artifactUrl": "",
   "timeZone": "America/Los_Angeles",
   "digestTime": "08:00",
   "digestChannel": "slack-dm",
@@ -40,6 +46,5 @@
       "delivery status notification",
       "mail delivery"
     ]
-  },
-  "artifactUrl": "https://claude.ai/code/artifact/bb71ad46-4511-4122-bb3d-58cfc69e9d7f"
+  }
 }
