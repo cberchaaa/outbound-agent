@@ -1,0 +1,15 @@
+{
+  "name": "outbound-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Territory outbound outreach agent: 15-touch multi-modality cadence, Gmail drafts, daily digest.",
+  "main": "src/planner.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "brief": "node src/cli.js brief",
+    "drafts": "node src/cli.js drafts",
+    "schedule": "node src/cli.js schedule",
+    "build:sequence": "node tools/build-sequence.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

@@ -1,0 +1,6 @@
+node_modules/
+
+# Live state pulled from the console by tools/assemble.mjs. The console is the
+# source of truth; these are a machine-local cache, re-fetched on every run.
+config/settings-live.json
+data/sequence-live.json

@@ -1,0 +1,50 @@
+{
+  "operator": {
+    "name": "",
+    "email": "",
+    "slackUserId": ""
+  },
+  "artifactUrl": "",
+  "timeZone": "America/Los_Angeles",
+  "digestTime": "08:00",
+  "digestChannel": "slack-dm",
+  "draftLeadDays": 3,
+  "upcomingHorizonDays": 7,
+  "holidays": [
+    "2026-11-26",
+    "2026-11-27",
+    "2026-12-24",
+    "2026-12-25",
+    "2027-01-01"
+  ],
+  "sender": {
+    "sender_name": "",
+    "sender_title": "",
+    "sender_phone": "",
+    "sender_calendar_link": ""
+  },
+  "gmail": {
+    "labelName": "Outbound Agent",
+    "trashDraftsOnReply": true
+  },
+  "replyDetection": {
+    "enabled": true,
+    "lookbackDays": 30,
+    "autoStopOnReply": true,
+    "reportAutoStopsInDigest": true,
+    "ignoreAutoResponders": true,
+    "autoResponderHints": [
+      "out of office",
+      "automatic reply",
+      "auto-reply",
+      "autoreply",
+      "on vacation",
+      "away from my desk",
+      "parental leave",
+      "no longer with",
+      "undeliverable",
+      "delivery status notification",
+      "mail delivery"
+    ]
+  }
+}
